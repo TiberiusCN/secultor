@@ -3,7 +3,7 @@
 # Copyright 2017 (c) TiCaN <tican@protonmail.com> github.com/TiberiusCN
 #
 
-Release=0.0009
+Release=0.002
 
 #win=i686-w64-mingw32-
 CC=
@@ -16,7 +16,7 @@ DEFL=
 DEFC=-O2 -Wall -mfpmath=sse -msse2 -Wextra -pedantic
 
 #call
-all: iso2pvf ogllaf vmcut20p sculpo
+all: iso2pvf ogllaf vmcut20p secultor
 	
 
 iso2pvf: bin/iso2pvf$(FMT)
@@ -28,7 +28,7 @@ ogllaf: bin/ogllaf$(FMT)
 vmcut20p: bin/vmcut20p$(FMT)
 	
 
-sculpo: bin/sculpo$(FMT)
+secultor: bin/secultor$(FMT)
 	
 
 #prog
@@ -41,8 +41,8 @@ bin/ogllaf$(FMT): bin/ogllaf.o bin/glworks.o bin/lineut.o
 bin/vmcut20p$(FMT): bin/vmcut20p.o bin/lineut.o
 	$(CC)gcc bin/vmcut20p.o bin/lineut.o -lm $(LFLAGS) $(DEFL) -o bin/vmcut20p$(FMT)
 
-bin/sculpo$(FMT): bin/sculpo.o
-	$(CC)gcc bin/sculpo.o $(DEFL) $(LFLAGS) `$(CC)pkg-config glib-2.0 gtk+-2.0 --libs` -o bin/sculpo$(FMT)
+bin/secultor$(FMT): bin/secultor.o
+	$(CC)gcc bin/secultor.o $(DEFL) $(LFLAGS) `$(CC)pkg-config glib-2.0 gtk+-2.0 --libs` -o bin/secultor$(FMT)
 
 #obj
 bin/lineut.o: lineut.c lineut.h
@@ -57,8 +57,8 @@ bin/iso2pvf.o: iso2pvf.h iso2pvf.c
 bin/vmcut20p.o: ogllaf.h pvf.h vmcut20p.c vmcut20p.h
 	$(CC)gcc -c vmcut20p.c $(DEFC) $(CFLAGS) -o bin/vmcut20p.o
 
-bin/sculpo.o: sculpo.h sculpo.c
-	$(CC)gcc -c sculpo.c $(DEFC) $(CFLAGS) `$(CC)pkg-config glib-2.0 gtk+-2.0 --cflags` -o bin/sculpo.o
+bin/secultor.o: secultor.h secultor.c
+	$(CC)gcc -c secultor.c $(DEFC) $(CFLAGS) `$(CC)pkg-config glib-2.0 gtk+-2.0 --cflags` -o bin/secultor.o
 
 bin/ogllaf.o: ogllaf.h ogllaf.c
 	$(CC)gcc -c ogllaf.c $(DEFC) $(CFLAGS) -o bin/ogllaf.o
@@ -69,7 +69,7 @@ clean:
 	rm -f ./bin/*$(FMT)
 
 bkp:
-	7za a "../bkp/tradira_v$(Release).zip" ./*.c *.h Makefile change.log LICENSE
+	7za a "../bkp/secultor_v$(Release).zip" ./*.c *.h Makefile change.log LICENSE
 
 cyginstall: all
-	cp bin/* /bin/
+	cp bin/*.exe /bin/

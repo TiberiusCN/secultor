@@ -1,21 +1,75 @@
 /*
  * GPL 2
- * Copyright 2017 (c) TiCaN <tican.protonmail.com> github.com/TiberiusCN
+ * Copyright 2017 (c) TiCaN <tican@protonmail.com> github.com/TiberiusCN
  */
 
 #include "vmcut20p.h"
+#include <string.h>
 
 machine_t cut;
+
+void print_help()
+{
+	printf("\t-i, --input  <file>  programm\n");
+	printf("\t-b, --base   <value> Z-level of bottom line (def: 0.0)\n");
+	printf("\t-h, --height <value> Z-level of upper line (def: 10.0)\n");
+	printf("\t    --help           this text\n");
+	printf("\nvmcut20p v 0.5 @ GPL v2.0; Copyright (c) TiCaN <tican@protonmail.com> github.com/TiberiusCN\n");
+}
 
 int main(int argc, char** argv)
 {
 	memset(&cut,0,sizeof(cut));
 	
-	if(argc != 4)
+	const char* filein = 0;
+	float base = 0.0;
+	float height = 10.0;
+	
+	for(int i = 1; i < argc; i++)
 	{
-		printf("vmcut20p <pvf in> <zbase> <zheight> [ <rx> <ry> <rz> ]\n");
+		if((!strncmp(argv[i],"-i",3))||(!strncmp(argv[i],"--input",8)))
+		{
+			if(i == argc)
+			{
+				printf("Err: input not specified\n");
+				return 1;
+			}
+			i++;
+			filein = argv[i];
+			continue;
+		}
+		if((!strncmp(argv[i],"-b",3))||(!strncmp(argv[i],"--base",7)))
+		{
+			if(i == argc)
+			{
+				printf("Err: base not specified\n");
+				return 1;
+			}
+			i++;
+			sscanf(argv[i],"%f",&base);
+			continue;
+		}
+		if((!strncmp(argv[i],"-h",3))||(!strncmp(argv[i],"--height",9)))
+		{
+			if(i == argc)
+			{
+				printf("Err: height not specified\n");
+				return 1;
+			}
+			i++;
+			sscanf(argv[i],"%f",&height);
+			continue;
+		}
+		if(!strncmp(argv[i],"--help",7))
+		{
+			print_help();
+			return 0;
+		}
+		printf("Err: unknown option %s\n",argv[i]);
 		return 1;
 	}
+
+	if(!filein) { printf("Err: input not specified!\n"); print_help(); return 1; }
 	
 	const int cogllaf_line        = ogllaf_line       ;
 	const int cogllaf_color       = ogllaf_color      ;
@@ -23,14 +77,13 @@ int main(int argc, char** argv)
 	const int cogllaf_matrix_view = ogllaf_matrix_view;
 	const int cogllaf_type        = ogllaf_type       ;
 	
-	sscanf(argv[2],"%f",&cut.zd);
-	sscanf(argv[3],"%f",&cut.zu);
-	cut.zu += cut.zd;
+	cut.zd = base;
+	cut.zu = base+height;
 	
-	FILE* fpvf = fopen(argv[1],"rb");
+	FILE* fpvf = fopen(filein,"rb");
 	char fname[256];
-	int len = strlen(argv[1]);
-	memcpy(fname,argv[1],len);
+	int len = strlen(filein);
+	memcpy(fname,filein,len);
 	memcpy(fname+len,".up",4);
 	FILE* fup = fopen(fname,"wb");
 	memcpy(fname+len,".down",6);

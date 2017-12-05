@@ -8,6 +8,14 @@
 const char* acceptval = "ABCDEFGHIJKLMNOPQRSTUVWXYZ=";
 const char* acceptsig = ";:";
 
+void print_help()
+{
+	printf("\t-i, --input  <file>  input iso-file\n");
+	printf("\t-o, --output <value> output pvf-file\n");
+	printf("\t-h, --help           this text\n");
+	printf("\niso2pvf v1.0 @ GPL v2.0; Copyright (c) TiCaN <tican@protonmail.com> github.com/TiberiusCN\n");
+}
+
 int ResetISO(char* is)
 {
 	char* os = is;
@@ -79,7 +87,7 @@ int LoadISOFile(const char* filename, isofile_t* out)
 	fclose(f);
 	
 	int res = ResetISO(data);
-	if(res) return 2;
+	if(res) { free(data); return 2; }
 	
 	out->count = 0;
 	for(char* z = data; *z; z++)
@@ -101,33 +109,72 @@ int LoadISOFile(const char* filename, isofile_t* out)
 	
 	if(index - 1 != out->count)
 	{
-		printf("ind %d, count %d\n",index,out->count);
+		printf("Err: readed %d, but supposed %d\n",index,out->count);
+		free(data);
 		return 3;
 	}
-	
+
+	free(data);	
 	return 0;
 }
 
 int main(int argc, char ** argv)
 {
-	if(argc < 3)
+	const char* infile = 0;
+	const char* outfile = 0;
+
+	for(int i = 1; i < argc; i++)
 	{
-		printf("format: iso2pvf <txt iso in> <bin pvf out>\n");
+		if((!strncmp(argv[i],"-i",3))||(!strncmp(argv[i],"--input",8)))
+		{
+			i++;
+			if(i == argc)
+			{
+				printf("Err: input file not specified\n");
+				return 1;
+			}
+			infile = argv[i];
+			continue;
+		}
+		if((!strncmp(argv[i],"-o",3))||(!strncmp(argv[i],"--output",9)))
+		{
+			i++;
+			if(i == argc)
+			{
+				printf("Err: output file not specified\n");
+				return 1;
+			}
+			outfile = argv[i];
+			continue;
+		}
+		if((!strncmp(argv[i],"-h",3))||(!strncmp(argv[i],"--help",8)))
+		{
+			print_help();
+			return 0;
+		}
+		printf("Err: unknown option %s\n",argv[i]);
 		return 1;
 	}
-	
+
+	if(!infile || !outfile)
+	{
+		printf("Err: input or output not specified\n");
+		print_help();
+		return 1;
+	}
+
 	isofile_t iso;
 	
 	int res;
 	
-	res = LoadISOFile(argv[1],&iso);
+	res = LoadISOFile(infile,&iso);
 	if(res)
 	{
 		printf("Read error %d\n",res);
 		return 2;
 	}
 	
-	FILE* f = fopen(argv[2],"wb");	
+	FILE* f = fopen(outfile,"wb");	
 	if(!f)
 	{
 		printf("Write error %d\n",res);
@@ -138,6 +185,7 @@ int main(int argc, char ** argv)
 		fwrite(&iso.data[i],sizeof(pvf_t),1,f);
 	}
 	fclose(f);
+	free(iso.data);
 	
 	return 0;
 }

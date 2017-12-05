@@ -51,7 +51,7 @@
 #endif
 
 int WinInit(int top, int left, int width, int heigth, const char *name);
-void WinStart(void(*Render)(uint32_t dt));
+void WinStart(void(*Render)());
 void KeySet(void(*KeyDown)(uint32_t key));
 void SetCaption(const char* title);
 void ReProject(int rev);

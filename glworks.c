@@ -79,17 +79,24 @@ void KeySet(void(*KeyDown)(uint32_t key))
 			
 			glViewport(0,0,gw,gh);
 			ReProject(0);
+			
+			Render();
+			SwapBuffers( gdc );
 			return 0;
 		case WM_KEYDOWN:
 			if(GKeyDown)
 			{
 				uint32_t key = wp;
 				GKeyDown(key);
+				Render();
+				SwapBuffers( gdc );
 			}
 			return 0;
 		case WM_CREATE:
 			return 0;
 		case WM_PAINT:
+			Render();
+			SwapBuffers( gdc );
 			return 0;
 		case WM_DESTROY:
 			PostQuitMessage(0);
@@ -104,8 +111,6 @@ int WinInit(int top, int left, int width, int height, const char* name)
 	gw = width;
 	gh = height;
 	gaspect = (float)gw/(float)gh;
-	//glViewport(0,0,gw,gh);
-	//ReProject(0);
 
 	#ifdef __WINNT__
 		HINSTANCE hInst = GetModuleHandle(0);
@@ -136,27 +141,25 @@ int WinInit(int top, int left, int width, int height, const char* name)
 		PIXELFORMATDESCRIPTOR pfd;
 		int format;
 		
-		// set the pixel format for the DC
 		ZeroMemory( &pfd, sizeof( pfd ) );
 		pfd.nSize = sizeof( pfd );
 		pfd.nVersion = 1;
 		pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
 		pfd.iPixelType = PFD_TYPE_RGBA;
-		pfd.cColorBits = 32;    // размер цветового буфера
-		pfd.cDepthBits = 24;    // размер буфера глубины (z-buffer)
-		pfd.cStencilBits = 8;   // размер буфера трафарета (stencil buffer)
+		pfd.cColorBits = 32;
+		pfd.cDepthBits = 24;
+		pfd.cStencilBits = 8;
 		pfd.iLayerType = PFD_MAIN_PLANE;
 		format = ChoosePixelFormat( gdc, &pfd );
 		SetPixelFormat( gdc, format, &pfd );
 		
-		// create and enable the render context (RC)
 		grc = wglCreateContext( gdc );
 		wglMakeCurrent( gdc, grc );
 		
 		const char *extensions = (const char*)glGetString( GL_EXTENSIONS );
 		
 		if( strstr( extensions, ("WGL_EXT_swap_control") ) == 0 )
-			return; // Error: WGL_EXT_swap_control extension not supported on your computer.\n");
+			return;
 		else
 		{
 			BOOL (APIENTRY *wglSwapIntervalEXT)( int ) = 
@@ -203,7 +206,7 @@ int WinInit(int top, int left, int width, int height, const char* name)
 	return 0;
 }
 
-void WinStart(void(*Render)(uint32_t dt))
+void WinStart(void(*Render)())
 {
 	if(!Render) return;
 
@@ -212,21 +215,16 @@ void WinStart(void(*Render)(uint32_t dt))
 	#ifdef __WINNT__
 		MSG msg;
 		
-		DWORD ltime = GetTickCount();
-		DWORD ntime;
-		
 		glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
 		glViewport(0,0,gw,gh);
 		ReProject(0);
+		Render();
+		SwapBuffers( gdc );
 	 
 		while (GetMessage(&msg,NULL,0,0)) 
 		{
 			TranslateMessage(&msg); 
 			DispatchMessage(&msg);
-			ntime = GetTickCount();
-			Render(ntime-ltime);
-			SwapBuffers( gdc );
-			ltime = ntime;
 		}
 		
 		wglMakeCurrent( NULL, NULL );
@@ -253,13 +251,13 @@ void WinStart(void(*Render)(uint32_t dt))
 				gaspect = (float)gw/(float)gh;
 				glViewport(0,0,gw,gh);
 				ReProject(0);
-				Render(0);
+				Render();
 				glXSwapBuffers(dpy,gwnd);
 			}
 			else if (xev.type == KeyPress)
 			{
 				if(GKeyDown) GKeyDown(XKeycodeToKeysym(dpy,((XKeyPressedEvent*)&xev)->keycode,0));
-				Render(0);
+				Render();
 				glXSwapBuffers(dpy,gwnd);
 			}
 		}

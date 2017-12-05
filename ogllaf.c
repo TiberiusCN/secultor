@@ -24,6 +24,9 @@
 #define MODE_SETPART 3
 #define MODE_MAX 3
 
+#define PROG_TYPE_OGLLAF 0
+#define PROG_TYPE_CONNECT 1
+
 typedef struct xpoint_t
 {
 	float x,y,z;
@@ -233,7 +236,7 @@ void KeyDown(uint32_t key)
 			break;
 		}
 		break;
-	case XK_y:
+	case XK_o:
 		if(mode == MODE_CAMERA)
 		{
 			camspeed[0] *= 10.0;
@@ -245,7 +248,7 @@ void KeyDown(uint32_t key)
 			break;
 		}
 		break;
-	case XK_o:
+	case XK_y:
 		if(mode == MODE_CAMERA)
 		{
 			camspeed[0] *= 0.1;
@@ -269,12 +272,12 @@ void KeyDown(uint32_t key)
 		UpdateMatrix();
 		break;
 		
-	case XK_q:
+	case XK_e:
 		gOrthoScale -= 1.0;
 		if(gOrthoScale  <=  0.0) gOrthoScale = 0.0;
 		ReProject(0);
 		break;
-	case XK_e:
+	case XK_q:
 		gOrthoScale += 1.0;
 		ReProject(0);
 		break;
@@ -408,7 +411,7 @@ void KeyDown(uint32_t key)
 	}
 }
 
-void Render(uint32_t dt)
+void Render()
 {	
 	glClear( GL_COLOR_BUFFER_BIT );
 	
@@ -533,14 +536,48 @@ void Render(uint32_t dt)
 	glEnd();
 }
 
+void print_help()
+{
+	printf("Options:\n");
+	printf("\t-i, --input   <file>  drawset\n");
+	printf("\t-c, --connect <value> draw points between previous and next drawset\n");
+	printf("\t-h, --help            this text\n");
+	printf("\nMods:\n");
+	printf(" 1. Camera mode\n");
+	printf("\th,j,k,l,u,i - movement\n");
+	printf(" 2. Cursor mode\n");
+	printf("\th,j,k,l,u,i - axis-aligned movement\n");
+	printf("\tspace - move cursor to nearest point\n");
+	printf(" 3. Polyline mode - choise lines\n");
+	printf("\tIn this mode white line is main one, cyan lines are selected ones (with main line)\n");
+	printf("\tIf main line not selected (purple), in other mods selected line that had been loaded first will become main line\n");
+	printf("\th,l - cyclic line choise\n");
+	printf("\tj,k - select and deselect current line\n");
+	printf(" 4. Trace mode - highlights parts of choosen lines\n");
+	printf("\tIn this mode you can watch building of lines part by part\n");
+	printf("\th,l - highligth previous or next part of line\n");
+	printf("\t      Pay attention: it's not cyclic!\n");
+	printf("\tspace - move cursor to first point of selected part of main line\n");
+	printf("\t        selected part will be automatically set to last part of main line if counter is greater then coutn of parts of main line\n");
+	printf(" Any:\n");
+	printf("\tW,A,S,D - camera rotation\n");
+	printf("\tQ,E - scale ortho matrix\n");
+	printf("\tR - change camera projection\n");
+	printf("\tZ,X,C - move camera to cursor by X, Y or Z axis\n");
+	printf("\tB - change mode\n");
+	printf("\tN - align camera rotation to axis\n");
+	printf("\treturn - set relative zeropoint to cursor position or absolute zeropoint\n");
+	printf("\nTitle of window\n");
+	printf("\t<dx> <dy> <dz> [<dr>] MOD<N>\n");
+	printf("\tdx, dy, dz - vector coordinates from cursor to relative zeropoint\n");
+	printf("\tdr - distance between relative zeropoint and cursor\n");
+	printf("\tN - current mode index\n");
+	printf("\tPay attention: title changed after mode change or moving cursor or relative zeropoint\n\n");
+	printf("ogllaf v 1.0 @ GPL v2.0; Copyright (c) TiCaN <tican@protonmail.com> github.com/TiberiusCN\n");
+}
+
 int main(int argc, char** argv)
 {
-	if(argc < 2)
-	{
-		printf("prog?\n");
-		return 1;
-	}
-	
 	int res;
 	res = WinInit(000,000,0,0,"Tradira");
 	if(res)
@@ -550,88 +587,86 @@ int main(int argc, char** argv)
 		return res;
 	}
 	
-	const char** progs;
-	
-	if(argc == 3 && !strcmp(argv[1],"-s"))
+	const char** progs = 0;
+	char* progtypes = 0;
+	int progcounts = 0;
+
+	for(int i = 1; i < argc; i++)
 	{
-		//vis
-	} else {
-		cpolys = argc-1;
-		for(int i = 1; i < argc; i++)
+		if((!strncmp(argv[i],"-i",3))||(!strncmp(argv[i],"--input",8)))
 		{
-			if(!strcmp(argv[i],"-m")) cpolys -= 4;
-			if(!strcmp(argv[i],"-r")) cpolys -= 4;
+			i++;
+			if(i == argc)
+			{
+				printf("Err: input not specified\n");
+				return 1;
+			}
+			progcounts++;
+			continue;
 		}
-		progs = malloc(sizeof(*progs)*cpolys);
-		matrices = malloc(sizeof(*matrices)*cpolys);
-		
-		glMatrixMode(GL_MODELVIEW);
-		glPushMatrix();
-		glLoadIdentity();
-		
-		float rx,ry,rz,mx,my,mz;
-		rx = ry = rz = mx = my = mz = 0.0;
-		
-		cpolys = 0;
-		for(int i = 1; i < argc; i++)
+		if((!strncmp(argv[i],"-c",3))||(!strncmp(argv[i],"--connect",10)))
 		{
-			if(!strcmp(argv[i],"-m"))
+			if((i == argc-1)||(!progcounts))
 			{
-				if(argc-i < 4)
-				{
-					printf("-m x y z\n");
-					return 1;
-				}
-				
-				sscanf(argv[i+1],"%f",&mx);
-				sscanf(argv[i+2],"%f",&my);
-				sscanf(argv[i+3],"%f",&mz);
-				
-				glLoadIdentity();
-				glRotatef(rx,1.0,0.0,0.0);
-				glRotatef(ry,0.0,1.0,0.0);
-				glRotatef(rz,0.0,0.0,1.0);
-	            
-				glTranslatef(mx,my,mz);
-				
-				i += 3; 
-				continue; 
+				printf("Err: bad connection\n");
+				return 1;
 			}
-			if(!strcmp(argv[i],"-r"))
-			{
-				if(argc-i < 4)
-				{
-					printf("-r x y z\n");
-					return 1;
-				}
-				
-				sscanf(argv[i+1],"%f",&rx);
-				sscanf(argv[i+2],"%f",&ry);
-				sscanf(argv[i+3],"%f",&rz);
-				
-				glLoadIdentity();
-				glRotatef(rx,1.0,0.0,0.0);
-				glRotatef(ry,0.0,1.0,0.0);
-				glRotatef(rz,0.0,0.0,1.0);
-	            
-				glTranslatef(mx,my,mz);
-				
-				i += 3; 
-				continue; 
-			}
-			
-			glGetFloatv(GL_MODELVIEW_MATRIX,matrices[cpolys].f);
-			progs[cpolys] = argv[i];
-			cpolys++;
+			continue;
 		}
-		glPopMatrix();
-	}
-	
-	if(!cpolys)
-	{
-		printf("Prog?\n");
+		if((!strncmp(argv[i],"-h",3))||(!strncmp(argv[i],"--help",7)))
+		{
+			print_help();
+			return 0;
+		}
+		printf("Err: unknown option %s\n",argv[i]);
+		printf("Use -h or --help\n");
 		return 1;
 	}
+
+	if(!progcounts)
+	{
+		printf("Err: input not specified\n");
+		printf("Use -h or --help\n");
+		return 1;
+	}
+
+	progs = malloc(sizeof(*progs)*progcounts);
+	progtypes = malloc(sizeof(*progtypes)*progcounts);
+
+	progcounts = 0;
+
+	for(int i = 1; i < argc; i++)
+	{
+		if((!strncmp(argv[i],"-i",3))||(!strncmp(argv[i],"--input",8)))
+		{
+			i++;
+			progtypes[progcounts] = PROG_TYPE_OGLLAF;
+			progs[progcounts] = argv[i];
+			progcounts++;
+			continue;
+		}
+		if((!strncmp(argv[i],"-c",3))||(!strncmp(argv[i],"--connect",10)))
+		{
+			progtypes[progcounts] = PROG_TYPE_CONNECT;
+			progcounts++;
+			continue;
+		}
+	}
+	
+	cpolys = progcounts;
+	matrices = malloc(sizeof(*matrices)*cpolys);
+
+	progcounts = 0;
+
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+	glLoadIdentity();
+	for(int i = 0; i < cpolys; i++)
+	{
+		glGetFloatv(GL_MODELVIEW_MATRIX,matrices[progcounts].f);
+		progcounts++;
+	}
+	glPopMatrix();
 	
 	clines = malloc(sizeof(*clines)*cpolys);
 	types = malloc(sizeof(*clines)*cpolys);
@@ -649,7 +684,7 @@ int main(int argc, char** argv)
 	for(int l = 0; l < cpolys; l++)
 	{
 		types[l] = TYPE_DRAW_LINESTRIP;
-		if(!strcmp("-x",progs[l]))
+		if(progtypes[l] == PROG_TYPE_CONNECT)
 		{
 			if( l < 1 || l + 1 > cpolys )
 			{
