@@ -3,7 +3,7 @@
 # Copyright 2017 (c) TiCaN <tican@protonmail.com> github.com/TiberiusCN
 #
 
-Release=0.002
+Release=0.004
 
 #win=i686-w64-mingw32-
 CC=
@@ -16,7 +16,7 @@ DEFL=
 DEFC=-O2 -Wall -mfpmath=sse -msse2 -Wextra -pedantic
 
 #call
-all: iso2pvf ogllaf vmcut20p secultor
+all: iso2pvf ogllaf vmcut20p 
 	
 
 iso2pvf: bin/iso2pvf$(FMT)
@@ -69,7 +69,7 @@ clean:
 	rm -f ./bin/*$(FMT)
 
 bkp:
-	7za a "../bkp/secultor_v$(Release).zip" ./*.c *.h Makefile change.log LICENSE
+	7za a "../bkp/secultor_v$(Release).zip" ./*.c *.h Makefile LICENSE
 
 cyginstall: all
 	cp bin/*.exe /bin/

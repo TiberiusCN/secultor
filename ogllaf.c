@@ -36,6 +36,8 @@ typedef struct xline_t
 {
 	int count;
 	xpoint_t* points;
+	float x,y,z; //center
+	int arc;
 } xline_t;
 
 typedef struct xcolor_t
@@ -363,11 +365,32 @@ void KeyDown(uint32_t key)
 						mosti = i;
 						mostp = polylines[l][i].count;
 					}
+					if(polylines[l][i].arc)
+					{
+						dx = polylines[l][i].x-cursor[0];
+						dy = polylines[l][i].y-cursor[1];
+						dz = polylines[l][i].z-cursor[2];
+						dist = (dx*dx+dy*dy+dz*dz);
+						if(dist < min)
+						{
+							min = dist;
+							mostl = l;
+							mosti = i;
+							mostp = -1;
+						}
+					}
 				}
 			}
-			cursor[0] = polylines[mostl][mosti].points[mostp].x;
-			cursor[1] = polylines[mostl][mosti].points[mostp].y;
-			cursor[2] = polylines[mostl][mosti].points[mostp].z;
+			if(mostp != -1)
+			{
+				cursor[0] = polylines[mostl][mosti].points[mostp].x;
+				cursor[1] = polylines[mostl][mosti].points[mostp].y;
+				cursor[2] = polylines[mostl][mosti].points[mostp].z;
+			} else {
+				cursor[0] = polylines[mostl][mosti].x;
+				cursor[1] = polylines[mostl][mosti].y;
+				cursor[2] = polylines[mostl][mosti].z;
+			}
 			CaptionUpdate();
 			break;
 		}
@@ -655,6 +678,7 @@ int main(int argc, char** argv)
 	
 	cpolys = progcounts;
 	matrices = malloc(sizeof(*matrices)*cpolys);
+	memset(matrices,0,sizeof(*matrices)*cpolys);
 
 	progcounts = 0;
 
@@ -676,8 +700,11 @@ int main(int argc, char** argv)
 	fpolys = malloc(sizeof(*fpolys)*cpolys);
 	
 	memset(clines,0,sizeof(*clines)*cpolys);
-	memset(ccolors,0,sizeof(*ccolors)*cpolys);
 	memset(types,0,sizeof(*types)*cpolys);
+	memset(polylines,0,sizeof(*polylines)*cpolys);
+	memset(polycolors,0,sizeof(*polycolors)*cpolys);
+	memset(ccolors,0,sizeof(*ccolors)*cpolys);
+	memset(fpolys,0,sizeof(*fpolys)*cpolys);
 	
 	int special = 0;
 	
@@ -792,11 +819,7 @@ int main(int argc, char** argv)
 
 void MakeLine(xline_t *l1, xline_t *l2, xline_t *out)
 {
-	if(l1->count != l2->count) 
-	{
-		out->count = 0;
-		return;
-	}
+	out->arc = 0;
 	out->count = 4;
 	out->points = malloc(sizeof(*(out->points))*out->count);
 	out->points[0].x = l1->points[0].x;
@@ -818,6 +841,11 @@ void MakeLine(xline_t *l1, xline_t *l2, xline_t *out)
 
 int MakeXArc(xline_t *out, base_t *arc)
 {
+	out->x = arc->xc;
+	out->y = arc->yc;
+	out->z = arc->z1;
+	out->arc = 1;
+
 	float r1,r2;
 	float angle0 = lu_2dArcAngle1(arc,&r1);
 	float angle1 = lu_2dArcAngle2(arc,&r2);
@@ -872,6 +900,7 @@ int MakeXArc(xline_t *out, base_t *arc)
 
 int MakeXLine(xline_t *out, base_t* line)
 {	
+	out->arc = 0;
 	out->count = 2;
 	out->points = malloc(sizeof(xpoint_t)*2);
 	out->points[0].x = line->x1;
